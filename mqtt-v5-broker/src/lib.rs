@@ -11,6 +11,8 @@ use log::{debug, info};
 
 use sidevm::{net::TcpListener, task};
 
+mod allocator;
+
 /// Bind tcp address TODO: make this configurable
 const TCP_LISTENER_ADDR: &str = "0.0.0.0:1883";
 
