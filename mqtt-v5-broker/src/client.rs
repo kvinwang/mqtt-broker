@@ -15,9 +15,8 @@ use nanoid::nanoid;
 use std::{marker::Unpin, time::Duration};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
-    sync::mpsc::{self, Receiver, Sender},
-    task, time,
 };
+use futures::channel::mpsc::{self, Receiver, Sender};
 use tokio_util::codec::Framed;
 
 use bytes::BytesMut;
@@ -50,7 +49,7 @@ where
     ST: Stream<Item = PacketResult> + Unpin + Send + Sync + 'static,
     SI: Sink<Packet, Error = EncodeError> + Unpin + Send + Sync + 'static,
 {
-    task::spawn(async move {
+    sidevm::spawn(async move {
         let unconnected_client = UnconnectedClient::new(packet_stream, packet_sink, broker_tx);
         match unconnected_client.handshake().await {
             Ok(client) => client.run().await,
@@ -188,7 +187,7 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
     }
 
     pub async fn handshake(mut self) -> Result<Client<ST, SI>, ProtocolError> {
-        let first_packet = time::timeout(Duration::from_secs(2), self.packet_stream.next())
+        let first_packet = sidevm::time::timeout(Duration::from_secs(2), self.packet_stream.next())
             .await
             .map_err(|_| ProtocolError::ConnectTimedOut)?;
 
@@ -297,8 +296,8 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
         mut stream: ST,
         client_id: String,
         keepalive_seconds: Option<u16>,
-        broker_tx: Sender<BrokerMessage>,
-        self_tx: Sender<ClientMessage>,
+        mut broker_tx: Sender<BrokerMessage>,
+        mut self_tx: Sender<ClientMessage>,
     ) {
         // The keepalive should be 1.5 times the specified keepalive value in the connect packet.
         let keepalive_duration = keepalive_seconds
@@ -310,7 +309,7 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
         loop {
             let next_packet = {
                 if let Some(keepalive_duration) = keepalive_duration {
-                    let next_packet = time::timeout(keepalive_duration, stream.next())
+                    let next_packet = sidevm::time::timeout(keepalive_duration, stream.next())
                         .await
                         .map_err(|_| ProtocolError::KeepAliveTimeout);
 
@@ -422,9 +421,9 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
     }
 
     async fn handle_socket_writes(sink: SI, mut broker_rx: Receiver<ClientMessage>) {
-        tokio::pin!(sink);
+        futures::pin_mut!(sink);
 
-        while let Some(frame) = broker_rx.recv().await {
+        while let Some(frame) = broker_rx.next().await {
             let mut packets = match frame {
                 ClientMessage::Packets(packets) => Either::Left(stream::iter(packets)),
                 ClientMessage::Packet(packet) => Either::Right(stream::once(future::ready(packet))),
@@ -450,7 +449,7 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
             // Process each packet in a dedicated timeout to be fair
             while let Some(packet) = packets.next().await {
                 let send = sink.send(packet);
-                match tokio::time::timeout(SINK_SEND_TIMEOUT, send).await {
+                match sidevm::time::timeout(SINK_SEND_TIMEOUT, send).await {
                     Ok(Ok(())) => (),
                     Ok(Err(e)) => {
                         warn!("Failed to write to client client socket: {:?}", e);

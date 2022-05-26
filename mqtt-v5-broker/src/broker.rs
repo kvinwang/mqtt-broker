@@ -1,4 +1,6 @@
 use crate::{client::ClientMessage, tree::SubscriptionTree};
+use futures::channel::mpsc::{self, Receiver, Sender};
+use futures::{SinkExt, StreamExt};
 use log::{info, warn};
 use mqtt_v5::{
     topic::TopicFilter,
@@ -15,7 +17,6 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     time::Duration,
 };
-use tokio::sync::mpsc::{self, Receiver, Sender};
 
 struct Session {
     #[allow(unused)]
@@ -155,7 +156,7 @@ impl Session {
     /// Attempt to send a `ClientMessage` to the client via the channel handle.
     /// If the channel is closed, the handle is removed from the session.
     async fn send(&mut self, message: ClientMessage) {
-        if let Some(ref client_sender) = self.client_sender {
+        if let Some(client_sender) = &mut self.client_sender {
             if client_sender.send(message).await.is_err() {
                 warn!("Failed to send message to client. Dropping sender");
                 self.client_sender.take();
@@ -219,8 +220,8 @@ impl Broker {
         client_id: &str,
         new_client_clean_start: bool,
     ) -> Option<Session> {
-        let existing_session = if let Some(existing_session) = self.sessions.remove(client_id) {
-            if let Some(client_sender) = &existing_session.client_sender {
+        let existing_session = if let Some(mut existing_session) = self.sessions.remove(client_id) {
+            if let Some(client_sender) = &mut existing_session.client_sender {
                 if let Err(e) = client_sender
                     .try_send(ClientMessage::Disconnect(DisconnectReason::SessionTakenOver))
                 {
@@ -265,7 +266,7 @@ impl Broker {
     async fn handle_new_client(
         &mut self,
         connect_packet: ConnectPacket,
-        client_msg_sender: Sender<ClientMessage>,
+        mut client_msg_sender: Sender<ClientMessage>,
     ) {
         let mut takeover_session = self
             .take_over_existing_client(&connect_packet.client_id, connect_packet.clean_start)
@@ -491,11 +492,11 @@ impl Broker {
                                 will.will_delay_duration()
                                     .unwrap_or_else(|| Duration::from_secs(0)),
                             );
-                        let broker_sender = self.sender.clone();
+                        let mut broker_sender = self.sender.clone();
 
                         // Spawn a task that publishes the will after `will_send_delay_duration`
-                        tokio::spawn(async move {
-                            tokio::time::sleep(will_send_delay_duration).await;
+                        sidevm::spawn(async move {
+                            sidevm::time::sleep(will_send_delay_duration).await;
                             broker_sender
                                 .send(BrokerMessage::PublishFinalWill(client_id, will))
                                 .await
@@ -661,7 +662,7 @@ impl Broker {
     }
 
     pub async fn run(mut self) {
-        while let Some(msg) = self.receiver.recv().await {
+        while let Some(msg) = self.receiver.next().await {
             match msg {
                 BrokerMessage::NewClient(connect_packet, client_msg_sender) => {
                     self.handle_new_client(*connect_packet, client_msg_sender).await;
@@ -695,119 +696,5 @@ impl Broker {
                 },
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        broker::{Broker, BrokerMessage},
-        client::ClientMessage,
-    };
-    use mqtt_v5::types::{properties::*, ProtocolVersion, *};
-    use tokio::{
-        runtime::Runtime,
-        sync::mpsc::{self, Sender},
-    };
-
-    async fn run_client(broker_tx: Sender<BrokerMessage>) {
-        let (sender, mut receiver) = mpsc::channel(5);
-
-        let connect_packet = ConnectPacket {
-            protocol_name: "mqtt".to_string(),
-            protocol_version: ProtocolVersion::V500,
-            clean_start: true,
-            keep_alive: 1000,
-
-            session_expiry_interval: None,
-            receive_maximum: None,
-            maximum_packet_size: None,
-            topic_alias_maximum: None,
-            request_response_information: None,
-            request_problem_information: None,
-            user_properties: vec![],
-            authentication_method: None,
-            authentication_data: None,
-
-            client_id: "TEST".to_string(),
-            will: None,
-            user_name: None,
-            password: None,
-        };
-
-        let _ = broker_tx
-            .send(BrokerMessage::NewClient(Box::new(connect_packet), sender))
-            .await
-            .unwrap();
-
-        let resp = receiver.recv().await.unwrap();
-
-        assert_eq!(
-            resp,
-            ClientMessage::Packet(Packet::ConnectAck(ConnectAckPacket {
-                session_present: false,
-                reason_code: ConnectReason::Success,
-
-                session_expiry_interval: None,
-                receive_maximum: None,
-                maximum_qos: None,
-                retain_available: None,
-                maximum_packet_size: None,
-                assigned_client_identifier: Some(AssignedClientIdentifier("TEST".to_string())),
-                topic_alias_maximum: None,
-                reason_string: None,
-                user_properties: vec![],
-                wildcard_subscription_available: None,
-                subscription_identifiers_available: None,
-                shared_subscription_available: None,
-                server_keep_alive: None,
-                response_information: None,
-                server_reference: None,
-                authentication_method: None,
-                authentication_data: None,
-            }))
-        );
-
-        let _ = broker_tx
-            .send(BrokerMessage::Subscribe(
-                "TEST".to_string(),
-                SubscribePacket {
-                    packet_id: 0,
-                    subscription_identifier: None,
-                    user_properties: vec![],
-                    subscription_topics: vec![SubscriptionTopic {
-                        topic_filter: "home/kitchen/temperature".parse().unwrap(),
-                        maximum_qos: QoS::AtMostOnce,
-                        no_local: false,
-                        retain_as_published: false,
-                        retain_handling: RetainHandling::DoNotSend,
-                    }],
-                },
-            ))
-            .await
-            .unwrap();
-
-        let resp = receiver.recv().await.unwrap();
-
-        assert_eq!(
-            resp,
-            ClientMessage::Packet(Packet::SubscribeAck(SubscribeAckPacket {
-                packet_id: 0,
-                reason_string: None,
-                user_properties: vec![],
-                reason_codes: vec![SubscribeAckReason::GrantedQoSZero,],
-            }))
-        );
-    }
-
-    #[test]
-    fn simple_client_test() {
-        let broker = Broker::new();
-        let sender = broker.sender();
-
-        let runtime = Runtime::new().unwrap();
-
-        runtime.spawn(broker.run());
-        runtime.block_on(run_client(sender));
     }
 }
