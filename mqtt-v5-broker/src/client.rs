@@ -11,7 +11,6 @@ use mqtt_v5::{
         ProtocolVersion, QoS,
     },
 };
-use nanoid::nanoid;
 use std::{marker::Unpin, time::Duration};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -208,8 +207,14 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
 
                 let (sender, receiver) = mpsc::channel(5);
 
+                fn rand_string() -> String {
+                    use std::sync::atomic::{Ordering, AtomicI32};
+                    static SEED: AtomicI32 = AtomicI32::new(0);
+                    format!("CLIENT{}", SEED.fetch_add(1, Ordering::Relaxed))
+                }
+
                 if connect_packet.client_id.is_empty() {
-                    connect_packet.client_id = nanoid!();
+                    connect_packet.client_id = rand_string();
                 }
 
                 let client_id = connect_packet.client_id.clone();
