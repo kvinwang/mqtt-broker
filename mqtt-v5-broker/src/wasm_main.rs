@@ -1,12 +1,13 @@
-use std::{env, io};
-
 use futures::future::try_join_all;
 use log::{debug, info};
-use mqtt_v5_broker::{
+use crate::{
     broker::{Broker, BrokerMessage},
     client,
 };
-use tokio::{net::TcpListener, sync::mpsc::Sender, task};
+
+use sidevm::{net::TcpListener, task};
+use tokio::sync::mpsc::Sender;
+use anyhow::Result;
 
 /// Bind tcp address TODO: make this configurable
 const TCP_LISTENER_ADDR: &str = "0.0.0.0:1883";
@@ -14,7 +15,7 @@ const TCP_LISTENER_ADDR: &str = "0.0.0.0:1883";
 /// Websocket tcp address TODO: make this configurable
 const WEBSOCKET_TCP_LISTENER_ADDR: &str = "0.0.0.0:8080";
 
-async fn tcp_server_loop(broker_tx: Sender<BrokerMessage>) -> io::Result<()> {
+async fn tcp_server_loop(broker_tx: Sender<BrokerMessage>) -> Result<()> {
     info!("Listening on {}", TCP_LISTENER_ADDR);
     let listener = TcpListener::bind(TCP_LISTENER_ADDR).await?;
 
@@ -25,7 +26,7 @@ async fn tcp_server_loop(broker_tx: Sender<BrokerMessage>) -> io::Result<()> {
     }
 }
 
-async fn websocket_server_loop(broker_tx: Sender<BrokerMessage>) -> io::Result<()> {
+async fn websocket_server_loop(broker_tx: Sender<BrokerMessage>) -> Result<()> {
     info!("Listening on {}", WEBSOCKET_TCP_LISTENER_ADDR);
     let listener = TcpListener::bind(WEBSOCKET_TCP_LISTENER_ADDR).await?;
 
@@ -37,15 +38,11 @@ async fn websocket_server_loop(broker_tx: Sender<BrokerMessage>) -> io::Result<(
 }
 
 fn init_logging() {
-    if env::var("RUST_LOG").is_err() {
-        env_logger::builder().filter(None, log::LevelFilter::Debug).init();
-    } else {
-        env_logger::init();
-    }
+    sidevm::logger::Logger::with_max_level(log::Level::Debug).init();
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[sidevm::main]
+async fn main() {
     init_logging();
 
     let broker = Broker::new();
@@ -58,7 +55,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tcp_listener = task::spawn(tcp_server_loop(broker_tx.clone()));
     let websocket_listener = task::spawn(websocket_server_loop(broker_tx));
 
-    try_join_all([broker, tcp_listener, websocket_listener]).await?;
-
-    Ok(())
+    try_join_all([broker, tcp_listener, websocket_listener]).await.expect("Failed to join all tasks");
 }

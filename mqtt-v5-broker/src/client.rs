@@ -16,8 +16,8 @@ use std::{marker::Unpin, time::Duration};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::mpsc::{self, Receiver, Sender},
-    task, time,
 };
+use sidevm::{task, time};
 use tokio_util::codec::Framed;
 
 use bytes::BytesMut;
@@ -450,7 +450,7 @@ impl<ST: Stream<Item = PacketResult> + Unpin, SI: Sink<Packet, Error = EncodeErr
             // Process each packet in a dedicated timeout to be fair
             while let Some(packet) = packets.next().await {
                 let send = sink.send(packet);
-                match tokio::time::timeout(SINK_SEND_TIMEOUT, send).await {
+                match sidevm::time::timeout(SINK_SEND_TIMEOUT, send).await {
                     Ok(Ok(())) => (),
                     Ok(Err(e)) => {
                         warn!("Failed to write to client client socket: {:?}", e);

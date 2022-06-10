@@ -8,12 +8,18 @@ version = "0.1.0"
 authors = ["Brian Schwind <brianmschwind@gmail.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 bytes = "1"
 env_logger = "0.8.4"
 futures = "0.3"
 log = "0.4"
 mqtt-v5 = { path = "../mqtt-v5", version = "0.2" }
-nanoid = "0.3"
-tokio = { version = "1", features = ["net", "rt-multi-thread", "sync", "time", "macros"] }
+nanoid = "0.4"
+tokio = { version = "1", features = ["io-util"] }
 tokio-util = { version = "0.6", features = ["codec"] }
+anyhow = "1"
+sidevm = { version = "0.1.2", package = "pink-sidevm" }
+hex = "0.4.3"

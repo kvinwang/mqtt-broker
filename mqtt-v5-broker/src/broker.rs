@@ -494,8 +494,8 @@ impl Broker {
                         let broker_sender = self.sender.clone();
 
                         // Spawn a task that publishes the will after `will_send_delay_duration`
-                        tokio::spawn(async move {
-                            tokio::time::sleep(will_send_delay_duration).await;
+                        sidevm::spawn(async move {
+                            sidevm::time::sleep(will_send_delay_duration).await;
                             broker_sender
                                 .send(BrokerMessage::PublishFinalWill(client_id, will))
                                 .await
