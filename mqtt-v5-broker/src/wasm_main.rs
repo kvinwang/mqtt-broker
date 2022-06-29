@@ -38,7 +38,7 @@ async fn websocket_server_loop(broker_tx: Sender<BrokerMessage>) -> Result<()> {
 }
 
 fn init_logging() {
-    sidevm::logger::Logger::with_max_level(log::Level::Debug).init();
+    sidevm::logger::Logger::with_max_level(log::LevelFilter::Debug).init();
 }
 
 #[sidevm::main]
