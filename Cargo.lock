@@ -360,6 +360,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112c678d4050afce233f4f2852bb2eb519230b3cf12f33585275537d7e41578d"
 
 [[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
 name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -494,6 +500,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pin-project"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78203e83c48cffbe01e4a2d35d566ca4de445d79a85372fc64e378bfc812a260"
+dependencies = [
+ "pin-project-internal",
+]
+
+[[package]]
+name = "pin-project-internal"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "710faf75e1b33345361201d36d04e98ac1ed8909151a017ed384700836104c74"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -507,15 +533,17 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pink-sidevm"
-version = "0.1.4"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90535297a0700a1a81420e3d8b86f564c716f4c3d5c61b11ee105a6cea7b20cd"
+checksum = "d4783635f19f8fe594e5139c5fc97d7e51a99bb6fa61d2ec7502786e0b624eeb"
 dependencies = [
  "derive_more",
  "futures",
  "hyper",
+ "lazy_static",
  "log",
  "parity-scale-codec",
+ "pin-project",
  "pink-sidevm-env",
  "pink-sidevm-logger",
  "pink-sidevm-macro",
@@ -524,9 +552,9 @@ dependencies = [
 
 [[package]]
 name = "pink-sidevm-env"
-version = "0.1.3"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520a9b61a90c1f63566d0b28927eb34395d32462ff3a3258c1389285e2b61b49"
+checksum = "0b8ac3efaa3811de2b16ab0ee0e05429b74e50a206d83b67aef91697f8363f54"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -540,9 +568,9 @@ dependencies = [
 
 [[package]]
 name = "pink-sidevm-logger"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e372f4630c2d1b94a89a4fe73308dde02f74e92868e07266590a5dedbffcf71c"
+checksum = "3ed899f8afa20c4e49d48b7d1262fd681559b17d489be92a57cfa9f6311cf2ac"
 dependencies = [
  "log",
  "pink-sidevm-env",
