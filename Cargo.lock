@@ -410,7 +410,7 @@ dependencies = [
  "log",
  "mqtt-v5",
  "nanoid",
- "pink-sidevm",
+ "sidevm",
  "tokio",
  "tokio-util",
 ]
@@ -530,63 +530,6 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
-
-[[package]]
-name = "pink-sidevm"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4783635f19f8fe594e5139c5fc97d7e51a99bb6fa61d2ec7502786e0b624eeb"
-dependencies = [
- "derive_more",
- "futures",
- "hyper",
- "lazy_static",
- "log",
- "parity-scale-codec",
- "pin-project",
- "pink-sidevm-env",
- "pink-sidevm-logger",
- "pink-sidevm-macro",
- "tokio",
-]
-
-[[package]]
-name = "pink-sidevm-env"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b8ac3efaa3811de2b16ab0ee0e05429b74e50a206d83b67aef91697f8363f54"
-dependencies = [
- "cfg-if",
- "derive_more",
- "futures",
- "log",
- "num_enum 0.5.7",
- "parity-scale-codec",
- "pink-sidevm-macro",
- "tinyvec",
-]
-
-[[package]]
-name = "pink-sidevm-logger"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ed899f8afa20c4e49d48b7d1262fd681559b17d489be92a57cfa9f6311cf2ac"
-dependencies = [
- "log",
- "pink-sidevm-env",
-]
-
-[[package]]
-name = "pink-sidevm-macro"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5065913f95b84234d808f39c58e1aad1ee956239561f3f9c7476903871f9fee3"
-dependencies = [
- "heck",
- "proc-macro-crate 1.1.3",
- "proc-macro2",
- "syn",
-]
 
 [[package]]
 name = "ppv-lite86"
@@ -763,6 +706,63 @@ name = "sha1"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
+
+[[package]]
+name = "sidevm"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e8592f46c434eb79a2c98f8472bd80f7febe43075d9a58d9f0d89b73a9fb5b6"
+dependencies = [
+ "derive_more",
+ "futures",
+ "hyper",
+ "lazy_static",
+ "log",
+ "parity-scale-codec",
+ "pin-project",
+ "sidevm-env",
+ "sidevm-logger",
+ "sidevm-macro",
+ "tokio",
+]
+
+[[package]]
+name = "sidevm-env"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0296f984a0d283478c452beb6f68c95b32aff03a01fcd4f9cc0f789f4b39f6c"
+dependencies = [
+ "cfg-if",
+ "derive_more",
+ "futures",
+ "log",
+ "num_enum 0.5.7",
+ "parity-scale-codec",
+ "sidevm-macro",
+ "tinyvec",
+]
+
+[[package]]
+name = "sidevm-logger"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c37ddefe96aa785093babcdf7b61e60543628e4d68e75d289134ba8b7158532"
+dependencies = [
+ "log",
+ "sidevm-env",
+]
+
+[[package]]
+name = "sidevm-macro"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "587b0b7528504ed4c741115fd148ca5657c8d230f5ff6fbd4edce5eb2ac1eed8"
+dependencies = [
+ "heck",
+ "proc-macro-crate 1.1.3",
+ "proc-macro2",
+ "syn",
+]
 
 [[package]]
 name = "slab"

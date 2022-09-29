@@ -21,5 +21,5 @@ nanoid = "0.4"
 tokio = { version = "1", features = ["io-util"] }
 tokio-util = { version = "0.6", features = ["codec"] }
 anyhow = "1"
-sidevm = { version = "0.1.2", package = "pink-sidevm" }
+sidevm = "0.1.2"
 hex = "0.4.3"
