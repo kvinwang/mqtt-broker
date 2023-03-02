@@ -1,13 +1,13 @@
-use futures::future::try_join_all;
-use log::{debug, info};
 use crate::{
     broker::{Broker, BrokerMessage},
     client,
 };
+use futures::future::try_join_all;
+use log::{debug, info};
 
+use anyhow::Result;
 use sidevm::{net::TcpListener, task};
 use tokio::sync::mpsc::Sender;
-use anyhow::Result;
 
 /// Bind tcp address TODO: make this configurable
 const TCP_LISTENER_ADDR: &str = "0.0.0.0:1883";
@@ -55,5 +55,7 @@ async fn main() {
     let tcp_listener = task::spawn(tcp_server_loop(broker_tx.clone()));
     let websocket_listener = task::spawn(websocket_server_loop(broker_tx));
 
-    try_join_all([broker, tcp_listener, websocket_listener]).await.expect("Failed to join all tasks");
+    try_join_all([broker, tcp_listener, websocket_listener])
+        .await
+        .expect("Failed to join all tasks");
 }
